@@ -20,7 +20,7 @@ CREATE TABLE human (
     user_last_name   VARCHAR2(30) NOT NULL,
     user_age         INTEGER NOT NULL,
     user_type        VARCHAR2(20),
-    action           VARCHAR2(20)
+    action           VARCHAR2(30)
 );
 
 ALTER TABLE human
