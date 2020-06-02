@@ -7,9 +7,9 @@
 
 CREATE TABLE animal (
     pet_name   VARCHAR2(20) NOT NULL,
-    pet_type   VARCHAR2(10) NOT NULL,
+    pet_type   VARCHAR2(20) NOT NULL,
     pet_age    INTEGER,
-    pet_sex    VARCHAR2(10)
+    pet_sex    VARCHAR2(20)
 );
 
 ALTER TABLE animal ADD CONSTRAINT animal_pk PRIMARY KEY ( pet_name,
@@ -19,7 +19,7 @@ CREATE TABLE human (
     user_name        VARCHAR2(30) NOT NULL,
     user_last_name   VARCHAR2(30) NOT NULL,
     user_age         INTEGER,
-    user_type        VARCHAR2(10)
+    user_type        VARCHAR2(20)
 );
 
 ALTER TABLE human ADD CONSTRAINT human_pk PRIMARY KEY ( user_name,
@@ -29,8 +29,8 @@ CREATE TABLE humananimal (
     human_user_name        VARCHAR2(30) NOT NULL,
     human_user_last_name   VARCHAR2(30) NOT NULL,
     animal_pet_name        VARCHAR2(20) NOT NULL,
-    animal_pet_type        VARCHAR2(10) NOT NULL,
-    action                 VARCHAR2(15)
+    animal_pet_type        VARCHAR2(20) NOT NULL,
+    action                 VARCHAR2(30)
 );
 
 ALTER TABLE humananimal
