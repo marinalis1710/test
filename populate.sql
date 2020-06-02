@@ -6,5 +6,5 @@ INSERT INTO Animal VALUES ('Мурчик', 'Кіт', '1', 'Хлопчик');
 INSERT INTO Animal VALUES ('Лунарія', 'Собака', '2', 'Дівчинка');
 INSERT INTO Animal VALUES ('Барбос', 'Собака', '4', 'Хлопчик');
 
-INSERT INTO HumanAnimal VALUES ('Свєта', 'Люлєловна', '18', 'Мурчик', 'Кіт');
-INSERT INTO HumanAnimal VALUES ('Маріна', 'Лісіченко', '19', 'Барбос', 'Собака');
+INSERT INTO HumanAnimal VALUES ('Свєта', 'Люлєловна', 'Мурчик', 'Кіт', '18');
+INSERT INTO HumanAnimal VALUES ('Маріна', 'Лісіченко', 'Барбос', 'Собака', '19');
