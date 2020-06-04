@@ -1,0 +1,363 @@
+import telebot
+import cx_Oracle
+import re
+bot = telebot.TeleBot('1292538078:AAEnBznx857FTiT_jwCRoTva5gOCM-bHB44')
+
+username = 'Marina'
+password = 'xu40e5'
+database = 'localhost/xe'
+connection = cx_Oracle.connect(username, password, database)
+cursor = connection.cursor()
+
+user_data = {}
+
+class User:
+    def __init__(self, first_name):
+        self.first_name = first_name
+        self.last_name = ''
+        #self.age = ''
+        
+
+
+@bot.message_handler(commands=['start', 'help'])
+def send_welcome(message):
+        msg = bot.send_message(message.chat.id, "Введіть ім'я")
+        bot.register_next_step_handler(msg, process_firstname_step)
+
+def process_firstname_step(message):
+    try:
+        user_id = message.from_user.id
+        user_data[user_id] = User(message.text)
+
+        msg = bot.send_message(message.chat.id, "Введіть прізвище")
+        bot.register_next_step_handler(msg, start_handler)
+    except Exception as e:
+        bot.reply_to(message, 'oooops')
+
+def start_handler(message):
+    chat_id = message.chat.id
+    text = message.text
+    msg = bot.send_message(chat_id, 'Скільки вам рочків?')
+    bot.register_next_step_handler(msg, askAge)
+
+
+def askAge(message):
+    chat_id = message.chat.id
+    text = message.text
+    if text.isdigit():
+        checkAge(message)
+        get_text_messages(message)
+    else:
+        msg = bot.send_message(chat_id, 'Вік повинен бути числом. Введіть ще раз, будь ласка')
+        bot.register_next_step_handler(msg, askAge)
+
+
+def checkAge(message):
+    chat_id = message.chat.id
+    text = message.text
+    if int(text) >= 18:
+        bot.send_message(chat_id, 'Чудово!')
+
+    else:
+        bot.send_message(chat_id, 'Вам повинно бути більше 18 рочків')
+
+def get_text_messages(message):
+    chat_id = message.chat.id
+    text = message.text
+    if int(text) >= 18:
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_volonteer = telebot.types.InlineKeyboardButton(text='Волонтер', callback_data='volonteer', url="https://forms.gle/TEykbjoMVVT96DAZ9")
+        keyboard.add(key_volonteer)
+        key_client = telebot.types.InlineKeyboardButton(text='Клієнт', callback_data='client')
+        keyboard.add(key_client)
+        bot.send_message(message.from_user.id, text='Обирай, хто ти:', reply_markup=keyboard)
+
+    else:
+        bot.send_message(message.from_user.id, "На жаль, тільки повнолітні можуть працевлаштовуватися та брати тварину з притулку.")
+
+@bot.callback_query_handler(func=lambda call: True)
+def client(call):
+    if (call.data.startswith('client')):
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_findAnimal = telebot.types.InlineKeyboardButton(text='Я загубив(-ла) тваринку', callback_data='Animal')
+        keyboard.add(key_findAnimal)
+        key_takeAnimal = telebot.types.InlineKeyboardButton(text='Я хочу взяти собі тваринку', callback_data='Animal')
+        keyboard.add(key_takeAnimal)
+        key_giveAnimal = telebot.types.InlineKeyboardButton(text='Я хочу віддати тваринку', callback_data='give_Animal', url="https://forms.gle/TEykbjoMVVT96DAZ9")
+        keyboard.add(key_giveAnimal)
+
+        bot.send_message(call.from_user.id, text='Чим можемо тобі допомогти?', reply_markup=keyboard)
+
+    elif (call.data.startswith('Animal')):
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_dog= telebot.types.InlineKeyboardButton(text='Собака🐶', callback_data='dog')
+        keyboard.add(key_dog)
+        key_cat = telebot.types.InlineKeyboardButton(text='Кіт🐱', callback_data='cat')
+        keyboard.add(key_cat)
+        bot.send_message(call.from_user.id, text='Оберіть тварину', reply_markup=keyboard)
+
+    elif (call.data.startswith('dog')):
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_dog_boy = telebot.types.InlineKeyboardButton(text='Хлопчик🧍‍♂️', callback_data='boy_dog')
+        keyboard.add(key_dog_boy)
+        key_dog_girl = telebot.types.InlineKeyboardButton(text='Дівчинка🧍‍♀️', callback_data='girl_dog')
+        keyboard.add(key_dog_girl)
+        bot.send_message(call.from_user.id, text='Оберіть стать', reply_markup=keyboard)
+
+    elif (call.data.startswith('boy_dog')):
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_dog_boy_baby = telebot.types.InlineKeyboardButton(text='Дитя (до 12 місяців)', callback_data='baby_boy_dog')
+        keyboard.add(key_dog_boy_baby)
+        key_dog_boy_young = telebot.types.InlineKeyboardButton(text='Молодий (від 1 до 3 років)', callback_data='young_boy_dog')
+        keyboard.add(key_dog_boy_young)
+        key_dog_boy_adult = telebot.types.InlineKeyboardButton(text='Дорослий (від 3 до 8 років)', callback_data='adult_boy_dog')
+        keyboard.add(key_dog_boy_adult)
+        key_dog_boy_veteran = telebot.types.InlineKeyboardButton(text='Ветерани (від 8 років)', callback_data='veteran_boy_dog')
+        keyboard.add(key_dog_boy_veteran)
+        bot.send_message(call.from_user.id, text='Оберіть вік', reply_markup=keyboard)
+
+    elif (call.data.startswith('baby_boy_dog')):
+        query = """select pet_pictures from animals where pet_type='dog' and pet_sex='boy' and pet_age = 'baby'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+    elif (call.data.startswith('young_boy_dog')):
+        query = """select pet_pictures from animals where pet_type='dog' and pet_sex='boy' and pet_age = 'young'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+    elif (call.data.startswith('adult_boy_dog')):
+        query = """select pet_pictures from animals where pet_type='dog' and pet_sex='boy' and pet_age = 'adult'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+    elif (call.data.startswith('veteran_boy_dog')):
+        query = """select pet_pictures from animals where pet_type='dog' and pet_sex='boy' and pet_age = 'veteran'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+    elif (call.data.startswith('girl_dog')):
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_dog_girl_baby = telebot.types.InlineKeyboardButton(text='Дитя (до 12 місяців)', callback_data='babygirldog')
+        keyboard.add(key_dog_girl_baby)
+        key_dog_girl_young = telebot.types.InlineKeyboardButton(text='Молодий (від 1 до 3 років)', callback_data='younggirldog')
+        keyboard.add(key_dog_girl_young)
+        key_dog_girl_adult = telebot.types.InlineKeyboardButton(text='Дорослий (від 3 до 8 років)',
+                                                       callback_data='adultgirldog')
+        keyboard.add(key_dog_girl_adult)
+        key_dog_girl_veteran = telebot.types.InlineKeyboardButton(text='Ветерани (від 8 років)', callback_data='veterangirldog')
+        keyboard.add(key_dog_girl_veteran)
+        bot.send_message(call.from_user.id, text='Оберіть вік', reply_markup=keyboard)
+
+    elif (call.data.startswith('babygirldog')):
+        query = """select pet_pictures from animals where pet_type='dog' and pet_sex='girl' and pet_age = 'baby'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+    elif (call.data.startswith('younggirldog')):
+        query = """select pet_pictures from animals where pet_type='dog' and pet_sex='girl' and pet_age = 'young'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+    elif (call.data.startswith('adultgirldog')):
+        query = """select pet_pictures from animals where pet_type='dog' and pet_sex='girl' and pet_age = 'adult'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+    elif (call.data.startswith('veterangirldog')):
+        query = """select pet_pictures from animals where pet_type='dog' and pet_sex='girl' and pet_age = 'veteran'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+    elif (call.data.startswith('cat')):
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_cat_boy = telebot.types.InlineKeyboardButton(text='Хлопчик', callback_data='boycat')
+        keyboard.add(key_cat_boy)
+        key_cat_girl = telebot.types.InlineKeyboardButton(text='Дівчинка', callback_data='girlcat')
+        keyboard.add(key_cat_girl)
+        bot.send_message(call.from_user.id, text='Оберіть стать', reply_markup=keyboard)
+
+    elif (call.data.startswith('boycat')):
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_cat_boy_baby = telebot.types.InlineKeyboardButton(text='Дитя (до 12 місяців)', callback_data='ccatboybaby')
+        keyboard.add(key_cat_boy_baby)
+        key_cat_boy_young = telebot.types.InlineKeyboardButton(text='Молодий (від 1 до 3 років)',
+                                                       callback_data='ccatboyyoung')
+        keyboard.add(key_cat_boy_young)
+        key_cat_boy_adult = telebot.types.InlineKeyboardButton(text='Дорослий (від 3 до 8 років)',
+                                                       callback_data='ccatboyadult')
+        keyboard.add(key_cat_boy_adult)
+        key_cat_boy_veteran = telebot.types.InlineKeyboardButton(text='Ветерани (від 8 років)',
+                                                         callback_data='ccatboyveteran')
+        keyboard.add(key_cat_boy_veteran)
+        bot.send_message(call.from_user.id, text='Оберіть вік', reply_markup=keyboard)
+
+    elif (call.data.startswith('ccatboybaby')):
+        query = """select pet_pictures from animals where pet_type='cat' and pet_sex='boy' and pet_age = 'baby'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+        query2 = """select pet_name from animals where pet_type='cat' and pet_sex='boy' and pet_age = 'baby'"""
+        cursor.execute(query2)
+        for row in cursor:
+            bot.send_message(call.message.chat.id, row)
+
+    elif (call.data.startswith('ccatboyyoung')):
+        query = """select pet_pictures from animals where pet_type='cat' and pet_sex='boy' and pet_age = 'young'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+        query2 = """select pet_name from animals where pet_type='cat' and pet_sex='boy' and pet_age = 'young'"""
+        cursor.execute(query2)
+        for row in cursor:
+            bot.send_message(call.message.chat.id, row)
+
+    elif (call.data.startswith('ccatboyadult')):
+        query = """select pet_pictures from animals where pet_type='cat' and pet_sex='boy' and pet_age = 'adult'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+        query2 = """select pet_name from animals where pet_type='cat' and pet_sex='boy' and pet_age = 'adult'"""
+        cursor.execute(query2)
+        for row in cursor:
+            bot.send_message(call.message.chat.id, row)
+
+    elif (call.data.startswith('ccatboyveteran')):
+        query = """select pet_pictures from animals where pet_type='cat' and pet_sex='boy' and pet_age = 'veteran'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+        query2 = """select pet_name from animals where pet_type='cat' and pet_sex='boy' and pet_age = 'veteran'"""
+        cursor.execute(query2)
+        for row in cursor:
+            bot.send_message(call.message.chat.id, row)
+
+    elif (call.data.startswith('girlcat')):
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        key_cat_girl_baby = telebot.types.InlineKeyboardButton(text='Дитя (до 12 місяців)', callback_data='cgirlbaby')
+        keyboard.add(key_cat_girl_baby)
+        key_cat_girl_young = telebot.types.InlineKeyboardButton(text='Молодий (від 1 до 3 років)',
+                                                       callback_data='cgirlyoung')
+        keyboard.add(key_cat_girl_young)
+        key_cat_girl_adult = telebot.types.InlineKeyboardButton(text='Дорослий (від 3 до 8 років)',
+                                                       callback_data='cgirladult')
+        keyboard.add(key_cat_girl_adult)
+        key_cat_girl_veteran = telebot.types.InlineKeyboardButton(text='Ветерани (від 8 років)',
+                                                         callback_data='cgirlveteran')
+        keyboard.add(key_cat_girl_veteran)
+        bot.send_message(call.from_user.id, text='Оберіть вік', reply_markup=keyboard)
+
+    elif (call.data.startswith('cgirlbaby')):
+        query = """select pet_pictures from animals where pet_type='cat' and pet_sex='girl' and pet_age = 'baby'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+        query2 = """select pet_name from animals where pet_type='cat' and pet_sex='girl' and pet_age = 'baby'"""
+        cursor.execute(query2)
+        for row in cursor:
+            bot.send_message(call.message.chat.id, row)
+
+    elif (call.data.startswith('cgirlyoung')):
+        query = """select pet_pictures from animals where pet_type='cat' and pet_sex='girl' and pet_age = 'young'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+        query2 = """select pet_name from animals where pet_type='cat' and pet_sex='girl' and pet_age = 'young'"""
+        cursor.execute(query2)
+        for row in cursor:
+            bot.send_message(call.message.chat.id, row)
+
+    elif (call.data.startswith('cgirladult')):
+        query = """select pet_pictures from animals where pet_type='cat' and pet_sex='girl' and pet_age = 'adult'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+        query2 = """select pet_name from animals where pet_type='cat' and pet_sex='girl' and pet_age = 'adult'"""
+        cursor.execute(query2)
+        for row in cursor:
+            bot.send_message(call.message.chat.id, row)
+
+    elif (call.data.startswith('cgirlveteran')):
+        query = """select pet_pictures from animals where pet_type='cat' and pet_sex='girl' and pet_age = 'veteran'"""
+        cursor.execute(query)
+        for row in cursor:
+            ro = ' '.join(row)
+            img = open(ro, 'rb')
+            bot.send_photo(call.message.chat.id, img)
+
+        query2 = """select pet_name from animals where pet_type='cat' and pet_sex='girl' and pet_age = 'veteran'"""
+        cursor.execute(query2)
+        for row in cursor:
+            bot.send_message(call.message.chat.id, row)
+def process_lastname_step(message):
+    try:
+        user_id = message.from_user.id
+        user = user_data[user_id]
+        user.last_name = message.text
+
+        '''sql = "INSERT INTO users (first_name, last_name, user_id) \
+                                  VALUES (%s, %s, %s)"
+        val = (user.first_name, user.last_name, user_id)
+        cursor.execute(sql, val)
+        db.commit()'''
+
+        bot.send_message(message.chat.id, "Вы успешно зарегистрированны!")
+    except Exception as e:
+        bot.reply_to(message, 'Ошибка, или вы уже зарегистрированны!')
+
+# Enable saving next step handlers to file "./.handlers-saves/step.save".
+# Delay=2 means that after any change in next step handlers (e.g. calling register_next_step_handler())
+# saving will hapen after delay 2 seconds.
+#bot.enable_save_next_step_handlers(delay=2)
+
+# Load next_step_handlers from save file (default "./.handlers-saves/step.save")
+# WARNING It will work only if enable_save_next_step_handlers was called!
+#bot.load_next_step_handlers()
+
+if __name__ == '__main__':
+    bot.polling(none_stop=True)
